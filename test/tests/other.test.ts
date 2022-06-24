@@ -65,3 +65,5 @@ test('Can format nested comment', files, 'other/nested-comment');
 test('Format binary expressions', files, 'other/binary-expression');
 
 test('Format directives', files, 'other/directive');
+
+test('Can format an Astro JSX in expression', files, 'other/astro-jsx');

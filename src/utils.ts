@@ -30,7 +30,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 // the worker path must be absolute
-const serialize = createSyncFn(require.resolve('../workers/serialize-worker.js'));
+export const serialize = createSyncFn(require.resolve('../workers/serialize-worker.js'));
 
 type ParserOptions = ParserOpts<anyNode>;
 type AstPath = AstP<anyNode>;
@@ -230,12 +230,6 @@ export function isTextNodeStartingWithWhitespace(node: Node): node is TextNode {
 
 export function isTextNodeEndingWithWhitespace(node: Node): node is TextNode {
 	return node.type === 'text' && /\s$/.test(getUnencodedText(node));
-}
-
-export function forceIntoExpression(statement: string): string {
-	// note the trailing newline: if the statement ends in a // comment,
-	// we can't add the closing bracket right afterwards
-	return `<>{${statement}\n}</>`;
 }
 
 /**

@@ -1,10 +1,4 @@
-import {
-	AstPath as AstP,
-	BuiltInParsers,
-	Doc,
-	ParserOptions as ParserOpts,
-	Printer,
-} from 'prettier';
+import { AstPath as AstP, Doc, ParserOptions as ParserOpts, Printer } from 'prettier';
 import _doc from 'prettier/doc';
 const {
 	builders: {
@@ -44,7 +38,6 @@ import {
 	canOmitSoftlineBeforeClosingTag,
 	manualDedent,
 	endsWithLinebreak,
-	forceIntoExpression,
 	formattableAttributes,
 	getMarkdownName,
 	getText,
@@ -490,16 +483,6 @@ function splitTextToDocs(node: NodeWithText): Doc[] {
 	return docs;
 }
 
-function expressionParser(text: string, parsers: BuiltInParsers, opts: ParserOptions) {
-	const ast = parsers.babel(text, opts);
-	// const ast = parsers.babel(text, parsers, opts);
-
-	return {
-		...ast,
-		program: ast.program.body[0].expression.children[0].expression,
-	};
-}
-
 let markdownComponentName = new Set();
 
 function embed(
@@ -518,15 +501,24 @@ function embed(
 	if (!node) return null;
 
 	if (node.type === 'expression') {
-		const textContent = printRaw(node);
-
 		let content: Doc;
 
-		content = textToDoc(forceIntoExpression(textContent), {
-			...opts,
-			parser: expressionParser,
-			semi: false,
-		});
+		if (node.children.some((c) => c.type !== 'text')) {
+			const textContent = printRaw(node);
+			content = textToDoc(textContent, {
+				...opts,
+				parser: '__astro_expression_with_jsx',
+				semi: false,
+				__astroExpressionNode: node,
+			});
+		} else {
+			const textContent = printRaw(node);
+			content = textToDoc(textContent, {
+				...opts,
+				parser: '__astro_expression',
+				semi: false,
+			});
+		}
 		content = stripTrailingHardline(content);
 
 		// if (node.children[0].value) {
@@ -549,9 +541,9 @@ function embed(
 	if (node.type === 'attribute' && node.kind === 'expression') {
 		const value = node.value.trim();
 		const name = node.name.trim();
-		let attrNodeValue = textToDoc(forceIntoExpression(value), {
+		let attrNodeValue = textToDoc(value, {
 			...opts,
-			parser: expressionParser,
+			parser: '__astro_expression',
 			semi: false,
 		});
 		attrNodeValue = stripTrailingHardline(attrNodeValue);
@@ -705,16 +697,31 @@ function embed(
 	return null;
 }
 
-function hasPrettierIgnore(path: AstP<CommentNode>) {
-	// const node = path.getNode();
+function hasPrettierIgnore(path: AstP<Node>) {
+	const node = path.getNode();
+	if (!node) return false;
+	const parent = path.getParentNode();
+	if (!parent) return false;
+	if (!isTagLikeNode(parent) && parent.type !== 'root') return false;
+	let comment: CommentNode | null = null;
+	for (let index = parent.children.indexOf(node) - 1; index >= 0; index--) {
+		const prev = parent.children[index];
+		if (prev.type === 'comment') {
+			comment = prev;
+			break;
+		}
+		if (prev.type !== 'text' || prev.value.trim()) {
+			return false;
+		}
+	}
+	if (!comment) return false;
 
-	// if (!node || !Array.isArray(node.comments)) return false;
+	const hasIgnore =
+		comment.value.includes('prettier-ignore') &&
+		!comment.value.includes('prettier-ignore-start') &&
+		!comment.value.includes('prettier-ignore-end');
 
-	// const hasIgnore = node.comments.some(
-	//   (comment: any) => comment.data.includes('prettier-ignore') && !comment.data.includes('prettier-ignore-start') && !comment.data.includes('prettier-ignore-end')
-	// );
-	// return hasIgnore;
-	return false;
+	return hasIgnore;
 }
 
 const printer: Printer = {

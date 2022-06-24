@@ -1,12 +1,8 @@
 import printer from './printer';
 import { options } from './options';
 import { Parser, Printer, SupportLanguage } from 'prettier';
-import { createSyncFn } from 'synckit';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
-// the worker path must be absolute
-const parse = createSyncFn(require.resolve('../workers/parse-worker.js'));
+import * as expressionPlugin from './expression';
+import { parseForPrettier } from './parser';
 
 export const languages: Partial<SupportLanguage>[] = [
 	{
@@ -19,15 +15,17 @@ export const languages: Partial<SupportLanguage>[] = [
 
 export const parsers: Record<string, Parser> = {
 	astro: {
-		parse: (source) => parse(source),
+		parse: parseForPrettier,
 		astFormat: 'astro',
-		locStart: (node) => node.start,
-		locEnd: (node) => node.end,
+		locStart: (node) => node.position.start.offset,
+		locEnd: (node) => node.position.end.offset,
 	},
+	...expressionPlugin.parsers,
 };
 
 export const printers: Record<string, Printer> = {
 	astro: printer,
+	...expressionPlugin.printers,
 };
 
 const defaultOptions = {

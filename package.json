@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@astrojs/compiler": "^0.15.2",
+    "@babel/traverse": "^7.18.2",
     "prettier": "^2.6.2",
     "sass-formatter": "^0.7.2",
     "synckit": "^0.7.0"
@@ -48,6 +49,8 @@
     "@changesets/cli": "^2.16.0",
     "@rollup/plugin-commonjs": "^21.0.3",
     "@rollup/plugin-node-resolve": "^13.0.5",
+    "@types/babel__traverse": "^7.17.1",
+    "@types/node": "^17.0.38",
     "@types/prettier": "^2.4.1",
     "@typescript-eslint/eslint-plugin": "^5.18.0",
     "@typescript-eslint/parser": "^5.18.0",
